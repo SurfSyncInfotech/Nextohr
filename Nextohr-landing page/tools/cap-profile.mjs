@@ -1,0 +1,10 @@
+import { chromium } from 'playwright-core';
+import fs from 'fs';
+const BASE='http://localhost:5174/';
+const logo='data:image/svg+xml;base64,'+fs.readFileSync('../brand/nextohr-logo.svg').toString('base64');
+const b=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+const ctx=await b.newContext({viewport:{width:1440,height:900},deviceScaleFactor:2,colorScheme:'light'});
+await ctx.addInitScript(`window.__NX_LOGO__=${JSON.stringify(logo)};`+fs.readFileSync('brand-override.js','utf8'));
+const p=await ctx.newPage(); await p.goto(BASE+'#/people'); await p.waitForTimeout(1200);
+await p.click('text=Aditya Singh'); await p.waitForTimeout(1300);
+await p.screenshot({path:'../captures/desktop/profile.png'}); await b.close();
