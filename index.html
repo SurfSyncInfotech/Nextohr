@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Nextohr — HR that flows</title>
+  <meta name="description" content="Nextohr is the calm HR workspace for attendance, leave, payroll, hiring and goals — built for growing teams in India." />
+  <meta name="theme-color" content="#FBF6F3" />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preload" as="image" href="/assets/shots/dashboard.webp" />
+  <script>
+    // Decide before first paint whether the logo intro plays (once per session, never under reduced motion).
+    (function () {
+      var d = document.documentElement; d.classList.add('js');
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var seen = false; try { seen = sessionStorage.getItem('nx-intro') === '1'; } catch (e) {}
+      if (!reduce && !seen && !/[?&]nointro/.test(location.search)) d.classList.add('intro-on');
+    })();
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
