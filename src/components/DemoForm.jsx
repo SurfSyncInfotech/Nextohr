@@ -3,9 +3,39 @@ import gsap from 'gsap';
 import Icon from './Icon.jsx';
 import Split from './Split.jsx';
 
-// Set VITE_FORM_ENDPOINT in .env to POST the request (JSON) to your API.
-// Without it, submitting only shows the confirmation — nothing leaves the browser.
-const FORM_ENDPOINT = import.meta.env.VITE_FORM_ENDPOINT || '';
+/**
+ * Starts a NextoHr HRMS trial via backend:
+ *   POST {VITE_API_URL}/api/public/start-trial
+ * Override with VITE_FORM_ENDPOINT if you need a custom URL.
+ */
+const API_BASE = String(import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const FORM_ENDPOINT =
+  import.meta.env.VITE_FORM_ENDPOINT ||
+  (API_BASE ? `${API_BASE}/api/public/start-trial` : '');
+const PRODUCT_NAME = 'NextoHr';
+
+async function notifyTrialStarted({ company, loginUrl }) {
+  try {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    if (Notification.permission !== 'granted') return;
+    const n = new Notification(`${PRODUCT_NAME} trial ready`, {
+      body: `${company} workspace is live. Check your email for sign-in details.`,
+      icon: '/assets/favicon.svg',
+      badge: '/assets/favicon.svg',
+      tag: 'nextohr-trial-started',
+    });
+    n.onclick = () => {
+      window.focus();
+      if (loginUrl) window.open(loginUrl, '_blank', 'noopener');
+      n.close();
+    };
+  } catch {
+    /* notification is optional */
+  }
+}
 
 const RULES = {
   name: (v) => (v.trim().length < 2 ? 'Please enter your full name.' : ''),
@@ -29,7 +59,7 @@ export default function DemoForm({ plan, setPlan }) {
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
-  const [doneName, setDoneName] = useState(null);
+  const [done, setDone] = useState(null);
   const inputs = useRef({});
   const doneRef = useRef(null);
 
@@ -44,26 +74,53 @@ export default function DemoForm({ plan, setPlan }) {
     setErrors(next);
     const firstBad = Object.keys(RULES).find((k) => next[k]);
     if (firstBad) { inputs.current[firstBad]?.focus(); return; }
-    const data = { ...values, plan, modules };
+
+    if (!FORM_ENDPOINT) {
+      setStatus('Trial API is not configured. Set VITE_API_URL in the landing .env (e.g. http://localhost:5000).');
+      return;
+    }
+
+    const payload = {
+      name: values.name.trim(),
+      companyName: values.company.trim(),
+      email: values.email.trim().toLowerCase(),
+      phone: values.phone.trim(),
+      companySize: values.teamSize || undefined,
+      preferredPlan: plan || undefined,
+      interestedModules: modules,
+    };
+
     setBusy(true);
     try {
-      if (FORM_ENDPOINT) {
-        const res = await fetch(FORM_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        if (!res.ok) throw new Error('send failed');
-      } else {
-        await new Promise((r) => setTimeout(r, 900));
+      const res = await fetch(FORM_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || (res.status === 409 ? 'An account with this email already exists.' : 'Could not start your trial.'));
       }
-      setDoneName(values.name.trim().split(/\s+/)[0]);
-    } catch {
-      setStatus('Something went wrong sending this. Please try again in a moment.');
+      const donePayload = {
+        firstName: values.name.trim().split(/\s+/)[0],
+        company: values.company.trim(),
+        emailSent: !!body.emailSent,
+        loginUrl: body.loginUrl || '',
+        adminEmail: body.adminEmail || values.email.trim().toLowerCase(),
+        temporaryPassword: body.temporaryPassword || '',
+        message: body.message || '',
+      };
+      setDone(donePayload);
+      void notifyTrialStarted({ company: donePayload.company, loginUrl: donePayload.loginUrl });
+    } catch (err) {
+      setStatus(err.message || 'Something went wrong starting your trial. Please try again.');
     } finally {
       setBusy(false);
     }
   };
 
-  // Confirmation entrance: tick draws in.
   useEffect(() => {
-    const el = doneRef.current; if (!doneName || !el) return;
+    const el = doneRef.current; if (!done || !el) return;
     el.focus({ preventScroll: true });
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const ctx = gsap.context(() => {
@@ -71,10 +128,10 @@ export default function DemoForm({ plan, setPlan }) {
       gsap.fromTo(el.querySelectorAll('circle, path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: .8, ease: 'power3.inOut', stagger: .35 });
     });
     return () => ctx.revert();
-  }, [doneName]);
+  }, [done]);
 
   const reset = () => {
-    setValues(EMPTY); setModules(['attendance']); setErrors({}); setPlan('standard'); setDoneName(null);
+    setValues(EMPTY); setModules(['attendance']); setErrors({}); setPlan('standard'); setDone(null); setStatus('');
     setTimeout(() => inputs.current.name?.focus(), 0);
   };
 
@@ -88,11 +145,11 @@ export default function DemoForm({ plan, setPlan }) {
           <path pathLength="1" d="M1500 140 C 1380 400, 1340 700, 1400 980" />
         </svg>
         <div className="demo-copy">
-          <Split id="demo-title" className="h-xl">Your next payroll is <em>already on its way.</em></Split>
-          <p className="sec-sub">Book a demo and let Nextohr run this one.</p>
+          <Split id="demo-title" className="h-xl">Start your free <em>HRMS trial.</em></Split>
+          <p className="sec-sub">We’ll create your company workspace and email you the admin sign-in.</p>
         </div>
 
-        <form className={`dform${busy ? ' is-busy' : ''}`} id="demoForm" noValidate onSubmit={submit} hidden={!!doneName}>
+        <form className={`dform${busy ? ' is-busy' : ''}`} id="demoForm" noValidate onSubmit={submit} hidden={!!done}>
           <div className="dform__grid">
             {FIELDS.map(([k, label, type, ac, ph, im]) => (
               <div className="fld" key={k}>
@@ -117,7 +174,7 @@ export default function DemoForm({ plan, setPlan }) {
               </div>
             </div>
             <fieldset className="fld seg-fld">
-              <legend>Plan</legend>
+              <legend>Plan interest</legend>
               <div className="seg">
                 {[['standard', 'Standard'], ['white-label', 'White-label']].map(([v, l]) => (
                   <label key={v}><input type="radio" name="plan" value={v} checked={plan === v} onChange={() => setPlan(v)} /><span>{l}</span></label>
@@ -127,7 +184,7 @@ export default function DemoForm({ plan, setPlan }) {
           </div>
 
           <fieldset className="chips-fld">
-            <legend>What would you like to see?</legend>
+            <legend>What would you like to explore?</legend>
             <div className="chips">
               {MODULES.map(([v, l]) => (
                 <label className="ch" key={v}><input type="checkbox" name="modules" value={v} checked={modules.includes(v)} onChange={() => toggleModule(v)} /><span>{l}</span></label>
@@ -135,19 +192,37 @@ export default function DemoForm({ plan, setPlan }) {
             </div>
           </fieldset>
 
-          <button className="dform__submit" type="submit"><span className="lbl">Book a demo <Icon name="solar:arrow-right-linear" /></span><span className="spin" aria-hidden="true"></span></button>
-          <p className="dform__note"><Icon name="solar:lock-keyhole-minimalistic-bold" /> Strictly confidential · We will never spam or sell your information.</p>
+          <button className="dform__submit" type="submit"><span className="lbl">Start free trial <Icon name="solar:arrow-right-linear" /></span><span className="spin" aria-hidden="true"></span></button>
+          <p className="dform__note"><Icon name="solar:lock-keyhole-minimalistic-bold" /> Trial modules follow your Super Admin plan · Cancel anytime before you pay.</p>
           <p className="dform__status" role="status" aria-live="polite">{status}</p>
         </form>
 
-        <div className="dform-done" id="demoDone" hidden={!doneName} tabIndex={-1} ref={doneRef}>
+        <div className="dform-done" id="demoDone" hidden={!done} tabIndex={-1} ref={doneRef}>
           <svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="34" pathLength="1" /><path d="M25 41 l10 10 l20 -22" pathLength="1" /></svg>
-          <h3>You're booked in, <span className="dn-name">{doneName || 'there'}</span>.</h3>
-          <p>We'll call you within one working day to pick a time for your 20-minute demo.</p>
-          <button type="button" className="link-quiet" id="demoAgain" onClick={reset}>Send another request</button>
+          <h3>Your trial is ready, <span className="dn-name">{done?.firstName || 'there'}</span>.</h3>
+          {done?.emailSent ? (
+            <p>We emailed sign-in details to your work inbox. Open the link in that email — it opens your company workspace.</p>
+          ) : (
+            <p>
+              Your workspace is live. {done?.temporaryPassword
+                ? <>Use email <strong>{done.adminEmail}</strong> and temporary password <strong>{done.temporaryPassword}</strong>. Click the button below to open the correct company sign-in (invite email could not be sent).</>
+                : 'Check with support if you do not receive the invite email.'}
+            </p>
+          )}
+          {done?.loginUrl && (
+            <p style={{ marginTop: 16 }}>
+              <a className="btn btn--plum" href={done.loginUrl} target="_blank" rel="noopener noreferrer">
+                Open admin sign-in <Icon name="solar:arrow-right-linear" />
+              </a>
+              <span className="dform__note" style={{ display: 'block', marginTop: 10 }}>
+                Sign-in link includes your company: <code style={{ fontSize: 12 }}>{done.loginUrl.replace(/^https?:\/\//, '')}</code>
+              </span>
+            </p>
+          )}
+          <button type="button" className="link-quiet" id="demoAgain" onClick={reset}>Start another trial</button>
         </div>
 
-        <p className="demo-foot">20-minute call · Set up with your own team as the example</p>
+        <p className="demo-foot">Instant workspace · Modules from Super Admin plan · Billing / Upgrade after trial</p>
       </div>
     </section>
   );

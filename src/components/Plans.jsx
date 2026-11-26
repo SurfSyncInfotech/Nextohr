@@ -23,7 +23,7 @@ export default function Plans({ onSelectPlan }) {
       <div className="plans-head marks">
         <Marks />
         <Split id="plans-title" className="h-lg"><span className="ring-dot" aria-hidden="true"></span>Simple plans. <em>Priced</em> on a call.</Split>
-        <p className="sec-sub">Every plan is set up with you on a 20-minute demo.</p>
+        <p className="sec-sub">Start a free trial — modules follow the plan Super Admin assigns.</p>
       </div>
       <div className="pcards">
         {PLANS.map((p) => (
@@ -34,7 +34,7 @@ export default function Plans({ onSelectPlan }) {
             <p className="pcard__for">{p.for}</p>
             <a href="#demo" className="pbtn marks" data-plan={p.id} onClick={() => onSelectPlan(p.id)}>
               <Marks />
-              <span className="pbtn__ic"><Icon name="solar:arrow-right-linear" /></span>Book a demo
+              <span className="pbtn__ic"><Icon name="solar:arrow-right-linear" /></span>Start free trial
             </a>
             <hr />
             <h4>What's included</h4>

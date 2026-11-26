@@ -37,10 +37,10 @@ export default function Hero() {
         <Split as="h1" className="hero__title">HR that <em>flows.</em></Split>
         <p className="hero__sub">Attendance, leave, payroll, hiring and goals in one calm workspace, so your people team spends time on people.</p>
         <div className="hero__ctas">
-          <a href="#demo" className="btn btn--plum btn--lg">Book a demo <Icon name="solar:arrow-right-linear" /></a>
+          <a href="#demo" className="btn btn--plum btn--lg">Start free trial <Icon name="solar:arrow-right-linear" /></a>
           <a href="#film" className="btn btn--ghost btn--lg"><span className="play-dot"><Icon name="solar:play-bold" /></span> Watch the film</a>
         </div>
-        <p className="hero__trust"><Icon name="solar:check-circle-bold" /> 20-minute demo <span>·</span> Live in an afternoon <span>·</span> Built for Indian payroll</p>
+        <p className="hero__trust"><Icon name="solar:check-circle-bold" /> Free trial <span>·</span> Live in minutes <span>·</span> Built for Indian payroll</p>
       </div>
 
       <div className="hero__stage">

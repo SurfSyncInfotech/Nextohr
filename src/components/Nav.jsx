@@ -25,7 +25,7 @@ export default function Nav() {
         </nav>
         <div className="nav__cta">
           <a href="#signin" className="link-quiet">Sign in</a>
-          <a href="#demo" className="btn btn--plum btn--sm">Book a demo</a>
+          <a href="#demo" className="btn btn--plum btn--sm">Start free trial</a>
           <button ref={burger} className="nav__burger" type="button" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="mnav" onClick={() => setOpen((o) => !o)}>
             <span></span><span></span>
           </button>
@@ -33,7 +33,7 @@ export default function Nav() {
       </div>
       <div className="mnav" id="mnav" hidden={!open}>
         {LINKS.map(([h, l]) => <a key={h} href={h} onClick={() => setOpen(false)}>{l}</a>)}
-        <a href="#demo" className="btn btn--plum" onClick={() => setOpen(false)}>Book a demo</a>
+        <a href="#demo" className="btn btn--plum" onClick={() => setOpen(false)}>Start free trial</a>
       </div>
     </header>
   );
